@@ -305,6 +305,10 @@ bool BatteryMonitor::update(void) {
             int ChargingCurrent =
                   (access(SYSFS_BATTERY_CURRENT, R_OK) == 0) ? abs(getIntField(String8(SYSFS_BATTERY_CURRENT))) : 0;
 
+#ifdef HEALTHD_ENABLE_OP_FASTCHG_CHECK
+            ChargingCurrent = getOpFastCurrent(ChargingCurrent);
+#endif
+
             int ChargingVoltage =
                   (access(SYSFS_BATTERY_VOLTAGE, R_OK) == 0) ? getIntField(String8(SYSFS_BATTERY_VOLTAGE)) :
                    DEFAULT_VBUS_VOLTAGE;
@@ -668,5 +672,30 @@ void BatteryMonitor::init(struct healthd_config *hc) {
         mBatteryFixedTemperature = FAKE_BATTERY_TEMPERATURE;
     }
 }
+
+#ifdef HEALTHD_ENABLE_OP_FASTCHG_CHECK
+bool BatteryMonitor::isOpFastCharge() {
+    String8 path;
+    path.appendFormat("%s/battery/fastchg_status", POWER_SUPPLY_SYSFS_PATH);
+    int fastChgValue = (access(path.string(), R_OK) == 0) ? getIntField(path) : 0;
+    return fastChgValue != 0;
+}
+
+int BatteryMonitor::getOpFastCurrent(int ChargingCurrent) {
+    KLOG_WARNING(LOG_TAG, "getOpFastCurrent active = %d ac = %d usb = %d\n", isOpFastCharge(), props.chargerAcOnline, props.chargerUsbOnline);
+    if (props.chargerAcOnline) {
+        if (isOpFastCharge()) {
+            return 1800000;
+        } else {
+            return 1500000;
+        }
+    } else {
+        if (props.chargerUsbOnline) {
+            return 500000;
+        }
+    }
+    return ChargingCurrent;
+}
+#endif
 
 }; // namespace android
