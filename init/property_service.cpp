@@ -1038,7 +1038,9 @@ void property_load_boot_defaults(bool load_debug_prop) {
     property_initialize_ro_product_props();
     property_derive_build_props();
 
-    update_sys_usb_config();
+    if (android::base::GetBoolProperty("ro.persistent_properties.ready", false)) {
+        update_sys_usb_config();
+    }
 }
 
 static int SelinuxAuditCallback(void* data, security_class_t /*cls*/, char* buf, size_t len) {
