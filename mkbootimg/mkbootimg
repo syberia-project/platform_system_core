@@ -189,7 +189,7 @@ def parse_cmdline():
     args = parser.parse_args()
     if args.header_version > 0 and args.dt != None:
         raise ValueError('header_version and dt cannot be set at the same time')
-     return args
+    return args
 
 
 def write_data(args):
