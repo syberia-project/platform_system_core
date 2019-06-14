@@ -175,7 +175,7 @@ private:
             ssize_t         replaceAt(const void* item, size_t index);
 };
 
-}; // namespace android
+} // namespace android
 
 
 // ---------------------------------------------------------------------------

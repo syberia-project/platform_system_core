@@ -81,7 +81,7 @@ enum {
 # define NO_ERROR 0L
 #endif
 
-}; // namespace android
+} // namespace android
     
 // ---------------------------------------------------------------------------
     

@@ -199,7 +199,7 @@ public:
 };
 
 
-}; // namespace android
+} // namespace android
 
 
 #endif /* ANDROID_UTILS_FLATTENABLE_H */
