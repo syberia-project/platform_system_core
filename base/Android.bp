@@ -42,6 +42,9 @@ cc_library_headers {
 cc_defaults {
     name: "libbase_defaults",
     defaults: ["libbase_cflags_defaults"],
+    sanitize: {
+            never: true,
+    },
     srcs: [
         "chrono_utils.cpp",
         "file.cpp",
