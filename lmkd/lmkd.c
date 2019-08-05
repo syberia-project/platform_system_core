@@ -174,7 +174,7 @@ struct polling_params {
     struct event_handler_info* poll_handler;
     struct timespec poll_start_tm;
     struct timespec last_poll_tm;
-    int polling_interval_ms;
+    unsigned long polling_interval_ms;
     enum polling_update update;
 };
 
@@ -2374,7 +2374,7 @@ static void mainloop(void) {
     struct polling_params poll_params;
     struct timespec curr_tm;
     struct epoll_event *evt;
-    long delay = -1;
+    unsigned long delay = -1;
 
     poll_params.poll_handler = NULL;
     poll_params.update = POLLING_NO_CHANGE;
