@@ -140,20 +140,22 @@ int set_sched_policy(int tid, SchedPolicy policy) {
 
     switch (policy) {
         case SP_BACKGROUND:
-            return SetTaskProfiles(tid, {"HighEnergySaving", "TimerSlackHigh", "BlkIOBackground"}, true)
-                          ? 0 : -1;
+            return SetTaskProfiles(tid, {"HighEnergySaving", "LowIoPriority", "TimerSlackHigh", "BlkIOBackground"},
+                                   true)
+                           ? 0
+                           : -1;
         case SP_FOREGROUND:
-            return SetTaskProfiles(tid, {"HighPerformance", "TimerSlackNormal", "BlkIOForeground"}, true)
+            return SetTaskProfiles(tid, {"HighPerformance", "HighIoPriority", "TimerSlackNormal", "BlkIOForeground"}, true)
                           ? 0 : -1;
         case SP_AUDIO_APP:
         case SP_AUDIO_SYS:
-            return SetTaskProfiles(tid, {"HighPerformance", "TimerSlackNormal", "BlkIOForeground"}, true)
+            return SetTaskProfiles(tid, {"HighPerformance", "HighIoPriority", "TimerSlackNormal", "BlkIOForeground"}, true)
                           ? 0 : -1;
         case SP_TOP_APP:
-            return SetTaskProfiles(tid, {"MaxPerformance", "TimerSlackNormal", "BlkIOForeground"}, true)
+            return SetTaskProfiles(tid, {"MaxPerformance", "MaxIoPriority", "TimerSlackNormal", "BlkIOForeground"}, true)
                           ? 0 : -1;
         case SP_RT_APP:
-            return SetTaskProfiles(tid, {"RealtimePerformance", "TimerSlackNormal", "BlkIOForeground"}, true)
+            return SetTaskProfiles(tid, {"RealtimePerformance", "MaxIoPriority", "TimerSlackNormal", "BlkIOForeground"}, true)
                           ? 0 : -1;
         default:
             return SetTaskProfiles(tid, {"TimerSlackNormal"}, true) ? 0 : -1;
