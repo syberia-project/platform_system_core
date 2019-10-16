@@ -1086,14 +1086,25 @@ int fs_mgr_mount_all(Fstab* fstab, int mount_mode) {
     int encryptable = FS_MGR_MNTALL_DEV_NOT_ENCRYPTABLE;
     int error_count = 0;
     CheckpointManager checkpoint_manager;
+    char propbuf[PROPERTY_VALUE_MAX];
+    bool is_ffbm = false;
     AvbUniquePtr avb_handle(nullptr);
 
     if (fstab->empty()) {
         return FS_MGR_MNTALL_FAIL;
     }
+    /**get boot mode*/
+    property_get("ro.bootmode", propbuf, "");
+    if ((strncmp(propbuf, "ffbm-00", 7) == 0) || (strncmp(propbuf, "ffbm-01", 7) == 0))
+        is_ffbm = true;
 
     for (size_t i = 0; i < fstab->size(); i++) {
         auto& current_entry = (*fstab)[i];
+
+        /* Skip userdata partition in ffbm mode */
+        if (is_ffbm && !strcmp(current_entry.mount_point.c_str(), "/data")){
+            continue;
+        }
 
         // If a filesystem should have been mounted in the first stage, we
         // ignore it here. With one exception, if the filesystem is
@@ -1104,7 +1115,6 @@ int fs_mgr_mount_all(Fstab* fstab, int mount_mode) {
              IsMountPointMounted(current_entry.mount_point))) {
             continue;
         }
-
         // Don't mount entries that are managed by vold or not for the mount mode.
         if (current_entry.fs_mgr_flags.vold_managed || current_entry.fs_mgr_flags.recovery_only ||
             ((mount_mode == MOUNT_MODE_LATE) && !current_entry.fs_mgr_flags.late_mount) ||
@@ -1283,8 +1293,15 @@ int fs_mgr_mount_all(Fstab* fstab, int mount_mode) {
             if (!call_vdc({"cryptfs", "mountFstab", attempted_entry.blk_device,
                            attempted_entry.mount_point})) {
                 ++error_count;
+                PERROR << android::base::StringPrintf(
+                    "Failure while mounting metadata, setting flag to needing recovery "
+                    "partition on %s at %s options: %s",
+                    attempted_entry.blk_device.c_str(), attempted_entry.mount_point.c_str(),
+                    attempted_entry.fs_options.c_str());
+                encryptable = FS_MGR_MNTALL_DEV_NEEDS_RECOVERY_WIPE_PROMPT;
+            } else {
+                encryptable = FS_MGR_MNTALL_DEV_IS_METADATA_ENCRYPTED;
             }
-            encryptable = FS_MGR_MNTALL_DEV_IS_METADATA_ENCRYPTED;
             continue;
         } else {
             // fs_options might be null so we cannot use PERROR << directly.

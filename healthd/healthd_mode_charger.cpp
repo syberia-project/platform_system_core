@@ -339,6 +339,9 @@ static void update_screen_state(charger* charger, int64_t now) {
 
     disp_time = batt_anim->frames[batt_anim->cur_frame].disp_time;
 
+    /* unblank the screen on first cycle and first frame */
+    if (batt_anim->cur_cycle == 0 && batt_anim->cur_frame == 0) healthd_draw->blank_screen(false);
+
     if (charger->screen_blanked) {
         healthd_draw->blank_screen(false);
         charger->screen_blanked = false;

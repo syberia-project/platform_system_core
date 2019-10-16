@@ -534,9 +534,8 @@ static void debuggerd_signal_handler(int signal_number, siginfo_t* info, void* c
   };
 
   // Set PR_SET_DUMPABLE to 1, so that crash_dump can ptrace us.
-  int orig_dumpable = prctl(PR_GET_DUMPABLE);
   if (prctl(PR_SET_DUMPABLE, 1) != 0) {
-    fatal_errno("failed to set dumpable");
+     fatal_errno("failed to set dumpable");
   }
 
   // On kernels with yama_ptrace enabled, also allow any process to attach.
@@ -566,9 +565,14 @@ static void debuggerd_signal_handler(int signal_number, siginfo_t* info, void* c
   // and then wait for it to terminate.
   futex_wait(&thread_info.pseudothread_tid, child_pid);
 
-  // Restore PR_SET_DUMPABLE to its original value.
-  if (prctl(PR_SET_DUMPABLE, orig_dumpable) != 0) {
-    fatal_errno("failed to restore dumpable");
+  // Signals can either be fatal or nonfatal.
+  // For fatal signals, crash_dump will PTRACE_CONT us with the signal we
+  // crashed with, so that processes using waitpid on us will see that we
+  // exited with the correct exit status (e.g. so that sh will report
+  // "Segmentation fault" instead of "Killed"). For this to work, we need
+  // to deregister our signal handler for that signal before continuing.
+  if (signal_number != DEBUGGER_SIGNAL) {
+    signal(signal_number, SIG_DFL);
   }
 
   // Restore PR_SET_PTRACER to its original value.

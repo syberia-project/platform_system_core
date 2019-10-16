@@ -41,6 +41,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <ApexProperties.sysprop.h>
 #include <android-base/chrono_utils.h>
 #include <android-base/file.h>
 #include <android-base/logging.h>
@@ -125,6 +126,13 @@ static Result<Success> do_class_start_post_data(const BuiltinArguments& args) {
     if (args.context != kInitContext) {
         return Error() << "command 'class_start_post_data' only available in init context";
     }
+    static bool is_apex_updatable = android::sysprop::ApexProperties::updatable().value_or(false);
+
+    if (!is_apex_updatable) {
+        // No need to start these on devices that don't support APEX, since they're not
+        // stopped either.
+        return {};
+    }
     for (const auto& service : ServiceList::GetInstance()) {
         if (service->classnames().count(args[1])) {
             if (auto result = service->StartIfPostData(); !result) {
@@ -149,6 +157,11 @@ static Result<Success> do_class_reset(const BuiltinArguments& args) {
 static Result<Success> do_class_reset_post_data(const BuiltinArguments& args) {
     if (args.context != kInitContext) {
         return Error() << "command 'class_reset_post_data' only available in init context";
+    }
+    static bool is_apex_updatable = android::sysprop::ApexProperties::updatable().value_or(false);
+    if (!is_apex_updatable) {
+        // No need to stop these on devices that don't support APEX.
+        return {};
     }
     ForEachServiceInClass(args[1], &Service::ResetIfPostData);
     return Success();
@@ -579,6 +592,13 @@ static Result<Success> queue_fs_event(int code) {
         }
         PLOG(ERROR) << "fs_mgr_mount_all suggested recovery, so wiping data via recovery.";
         const std::vector<std::string> options = {"--wipe_data", "--reason=fs_mgr_mount_all" };
+        return reboot_into_recovery(options);
+    } else if (code == FS_MGR_MNTALL_DEV_NEEDS_RECOVERY_WIPE_PROMPT) {
+        /* Setup a wipe via recovery with prompt, and reboot into recovery if chosen */
+        PLOG(ERROR) << "fs_mgr_mount_all suggested recovery, so wiping data via recovery "
+                       "with prompt.";
+        const std::vector<std::string> options = {"--prompt_and_wipe_data",
+             "--reason=fs_mgr_mount_all" };
         return reboot_into_recovery(options);
         /* If reboot worked, there is no return. */
     } else if (code == FS_MGR_MNTALL_DEV_FILE_ENCRYPTED) {

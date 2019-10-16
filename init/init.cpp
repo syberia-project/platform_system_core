@@ -39,10 +39,15 @@
 #include <android-base/stringprintf.h>
 #include <android-base/strings.h>
 #include <fs_avb/fs_avb.h>
+#include <fs_mgr.h>
+#include <fs_mgr_dm_linear.h>
+#include <fs_mgr_overlayfs.h>
 #include <fs_mgr_vendor_overlay.h>
+
 #include <keyutils.h>
 #include <libavb/libavb.h>
 #include <libgsi/libgsi.h>
+#include <private/android_filesystem_config.h>
 #include <processgroup/processgroup.h>
 #include <processgroup/setup.h>
 #include <selinux/android.h>
@@ -77,9 +82,19 @@ using android::base::StringPrintf;
 using android::base::Timer;
 using android::base::Trim;
 using android::fs_mgr::AvbHandle;
+using android::fs_mgr::Fstab;
+using android::fs_mgr::ReadDefaultFstab;
 
 namespace android {
 namespace init {
+
+namespace {
+bool DeferOverlayfsMount() {
+    std::string cmdline;
+    android::base::ReadFileToString("/proc/cmdline", &cmdline);
+    return cmdline.find("androidboot.defer_overlayfs_mount=1") != std::string::npos;
+}
+}
 
 static int property_triggers_enabled = 0;
 
@@ -327,6 +342,10 @@ void HandleControlMessage(const std::string& msg, const std::string& name, pid_t
 
 static Result<Success> wait_for_coldboot_done_action(const BuiltinArguments& args) {
     Timer t;
+    std::chrono::nanoseconds timeout = 60s;
+#ifdef SLOW_BOARD
+    timeout = 6000s;
+#endif
 
     LOG(VERBOSE) << "Waiting for " COLDBOOT_DONE "...";
 
@@ -338,7 +357,7 @@ static Result<Success> wait_for_coldboot_done_action(const BuiltinArguments& arg
     // property. We still panic if it takes more than a minute though,
     // because any build that slow isn't likely to boot at all, and we'd
     // rather any test lab devices fail back to the bootloader.
-    if (wait_for_file(COLDBOOT_DONE, 60s) < 0) {
+    if (wait_for_file(COLDBOOT_DONE, timeout) < 0) {
         LOG(FATAL) << "Timed out waiting for " COLDBOOT_DONE;
     }
 
@@ -624,6 +643,20 @@ int SecondStageMain(int argc, char** argv) {
     InitKernelLogging(argv);
     LOG(INFO) << "init second stage started!";
 
+    if (DeferOverlayfsMount()) {
+        Fstab fstab;
+        if (ReadDefaultFstab(&fstab)) {
+            fstab.erase(std::remove_if(fstab.begin(), fstab.end(),
+                                       [](const auto& entry) {
+                                           return !entry.fs_mgr_flags.first_stage_mount;
+                                       }),
+                        fstab.end());
+            LOG(INFO) << "Running deferred mounting of overlayfs";
+            fs_mgr_overlayfs_mount_all(&fstab);
+        }
+
+    }
+
     // Set init and its forked children's oom_adj.
     if (auto result = WriteFile("/proc/1/oom_score_adj", "-1000"); !result) {
         LOG(ERROR) << "Unable to write -1000 to /proc/1/oom_score_adj: " << result.error();
@@ -663,6 +696,20 @@ int SecondStageMain(int argc, char** argv) {
     const char* force_debuggable_env = getenv("INIT_FORCE_DEBUGGABLE");
     if (force_debuggable_env && AvbHandle::IsDeviceUnlocked()) {
         load_debug_prop = "true"s == force_debuggable_env;
+    }
+
+    // Set memcg property based on kernel cmdline argument
+    bool memcg_enabled = android::base::GetBoolProperty("ro.boot.memcg",false);
+    if (memcg_enabled) {
+       // root memory control cgroup
+       mkdir("/dev/memcg", 0700);
+       chown("/dev/memcg",AID_ROOT,AID_SYSTEM);
+       mount("none", "/dev/memcg", "cgroup", 0, "memory");
+       // app mem cgroups, used by activity manager, lmkd and zygote
+       mkdir("/dev/memcg/apps/",0755);
+       chown("/dev/memcg/apps/",AID_SYSTEM,AID_SYSTEM);
+       mkdir("/dev/memcg/system",0550);
+       chown("/dev/memcg/system",AID_SYSTEM,AID_SYSTEM);
     }
 
     // Clean up our environment.
@@ -718,14 +765,14 @@ int SecondStageMain(int argc, char** argv) {
 
     am.QueueBuiltinAction(SetupCgroupsAction, "SetupCgroups");
 
-    am.QueueEventTrigger("early-init");
+   am.QueueBuiltinAction(SetKptrRestrictAction, "SetKptrRestrict");
+   am.QueueEventTrigger("early-init");
 
     // Queue an action that waits for coldboot done so we know ueventd has set up all of /dev...
     am.QueueBuiltinAction(wait_for_coldboot_done_action, "wait_for_coldboot_done");
     // ... so that we can start queuing up actions that require stuff from /dev.
     am.QueueBuiltinAction(MixHwrngIntoLinuxRngAction, "MixHwrngIntoLinuxRng");
     am.QueueBuiltinAction(SetMmapRndBitsAction, "SetMmapRndBits");
-    am.QueueBuiltinAction(SetKptrRestrictAction, "SetKptrRestrict");
     Keychords keychords;
     am.QueueBuiltinAction(
         [&epoll, &keychords](const BuiltinArguments& args) -> Result<Success> {
