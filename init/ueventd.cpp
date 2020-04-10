@@ -236,7 +236,6 @@ int ueventd_main(int argc, char** argv) {
 
     // Keep the current product name base configuration so we remain backwards compatible and
     // allow it to override everything.
-    // TODO: cleanup platform ueventd.rc to remove vendor specific device node entries (b/34968103)
     auto hardware = android::base::GetProperty("ro.hardware", "");
 
     auto ueventd_configuration = ParseConfig({"/ueventd.rc", "/vendor/ueventd.rc",
