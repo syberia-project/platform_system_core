@@ -168,6 +168,7 @@ class Service {
     Result<Success> ParseSeclabel(std::vector<std::string>&& args);
     Result<Success> ParseSetenv(std::vector<std::string>&& args);
     Result<Success> ParseShutdown(std::vector<std::string>&& args);
+    Result<Success> ParseTaskProfiles(std::vector<std::string>&& args);
     Result<Success> ParseSigstop(std::vector<std::string>&& args);
     Result<Success> ParseSocket(std::vector<std::string>&& args);
     Result<Success> ParseTimeoutPeriod(std::vector<std::string>&& args);
@@ -208,6 +209,8 @@ class Service {
     Action onrestart_;  // Commands to execute on restart.
 
     std::vector<std::string> writepid_files_;
+
+    std::vector<std::string> task_profiles_;
 
     std::set<std::string> interfaces_;  // e.g. some.package.foo@1.0::IBaz/instance-name
 

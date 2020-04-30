@@ -730,6 +730,12 @@ Result<Success> Service::ParseShutdown(std::vector<std::string>&& args) {
     return Error() << "Invalid shutdown option";
 }
 
+Result<Success> Service::ParseTaskProfiles(std::vector<std::string>&& args) {
+    args.erase(args.begin());
+    task_profiles_ = std::move(args);
+    return Success();
+}
+
 Result<Success> Service::ParseTimeoutPeriod(std::vector<std::string>&& args) {
     int period;
     if (!ParseInt(args[1], &period, 1)) {
@@ -869,6 +875,8 @@ const Service::OptionParserMap::Map& Service::OptionParserMap::map() const {
         {"shutdown",    {1,     1,    &Service::ParseShutdown}},
         {"sigstop",     {0,     0,    &Service::ParseSigstop}},
         {"socket",      {3,     6,    &Service::ParseSocket}},
+        {"task_profiles",
+                        {1,     kMax, &Service::ParseTaskProfiles}},
         {"timeout_period",
                         {1,     1,    &Service::ParseTimeoutPeriod}},
         {"updatable",   {0,     0,    &Service::ParseUpdatable}},
@@ -1076,6 +1084,10 @@ Result<Success> Service::Start() {
             OpenConsole();
         } else {
             ZapStdio();
+        }
+
+        if (task_profiles_.size() > 0 && !SetTaskProfiles(getpid(), task_profiles_)) {
+            LOG(ERROR) << "failed to set task profiles";
         }
 
         // As requested, set our gid, supplemental gids, uid, context, and
