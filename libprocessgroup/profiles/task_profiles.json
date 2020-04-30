@@ -164,6 +164,20 @@
     },
 
     {
+      "Name": "CameraServicePerformance",
+      "Actions": [
+        {
+          "Name": "JoinCgroup",
+          "Params":
+          {
+            "Controller": "schedtune",
+            "Path": "camera-daemon"
+          }
+        }
+      ]
+    },
+
+    {
       "Name": "CpuPolicySpread",
       "Actions": [
         {
