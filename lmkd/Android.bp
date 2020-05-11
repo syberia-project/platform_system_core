@@ -25,7 +25,12 @@ cc_binary {
         "libstatssocket",
     ],
     local_include_dirs: ["include"],
-    cflags: ["-Werror", "-DLMKD_TRACE_KILLS"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+        "-DLMKD_TRACE_KILLS"
+    ],
     init_rc: ["lmkd.rc"],
     defaults: ["stats_defaults"],
     logtags: ["event.logtags"],
@@ -37,6 +42,7 @@ cc_library_static {
     cflags: [
         "-Wall",
         "-Werror",
+        "-Wextra",
     ],
     defaults: ["stats_defaults"],
     shared_libs: [

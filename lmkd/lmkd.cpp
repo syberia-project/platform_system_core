@@ -1368,13 +1368,6 @@ static void ctrl_command_handler(int dsock_idx) {
     if (len <= 0)
         return;
 
-    if (cred.uid != AID_SYSTEM && cred.uid != AID_ROOT) {
-        char buf[LINE_MAX];
-        ALOGE("Request received from an unprivileged process %s (%d, %d)",
-            proc_get_name(cred.pid, buf, sizeof(buf)), cred.uid, cred.pid);
-        return;
-    }
-
     if (len < (int)sizeof(int)) {
         ALOGE("Wrong control socket read length len=%d", len);
         return;
