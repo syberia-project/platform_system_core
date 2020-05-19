@@ -143,7 +143,6 @@ class TaskProfile {
     TaskProfile() : res_cached_(false) {}
 
     void Add(std::unique_ptr<ProfileAction> e) { elements_.push_back(std::move(e)); }
-    void MoveTo(TaskProfile* profile);
 
     bool ExecuteForProcess(uid_t uid, pid_t pid) const;
     bool ExecuteForTask(int tid) const;
@@ -155,21 +154,6 @@ class TaskProfile {
     std::vector<std::unique_ptr<ProfileAction>> elements_;
 };
 
-// Set aggregate profile element
-class ApplyProfileAction : public ProfileAction {
-  public:
-    ApplyProfileAction(const std::vector<std::shared_ptr<TaskProfile>>& profiles)
-        : profiles_(profiles) {}
-
-    virtual bool ExecuteForProcess(uid_t uid, pid_t pid) const;
-    virtual bool ExecuteForTask(int tid) const;
-    virtual void EnableResourceCaching();
-    virtual void DropResourceCaching();
-
-  private:
-    std::vector<std::shared_ptr<TaskProfile>> profiles_;
-};
-
 class TaskProfiles {
   public:
     // Should be used by all users
@@ -178,11 +162,9 @@ class TaskProfiles {
     TaskProfile* GetProfile(const std::string& name) const;
     const ProfileAttribute* GetAttribute(const std::string& name) const;
     void DropResourceCaching() const;
-    bool SetProcessProfiles(uid_t uid, pid_t pid, const std::vector<std::string>& profiles);
-    bool SetTaskProfiles(int tid, const std::vector<std::string>& profiles, bool use_fd_cache);
 
   private:
-    std::map<std::string, std::shared_ptr<TaskProfile>> profiles_;
+    std::map<std::string, std::unique_ptr<TaskProfile>> profiles_;
     std::map<std::string, std::unique_ptr<ProfileAttribute>> attributes_;
 
     TaskProfiles();
