@@ -443,8 +443,6 @@ static int show_help() {
             " --skip-reboot              Don't reboot device after flashing.\n"
             " --disable-verity           Sets disable-verity when flashing vbmeta.\n"
             " --disable-verification     Sets disable-verification when flashing vbmeta.\n"
-            " --fs-options=OPTION[,OPTION]\n"
-            "                            Enable filesystem features. OPTION supports casefold, projid, compress\n"
 #if !defined(_WIN32)
             " --wipe-and-use-fbe         Enable file-based encryption, wiping userdata.\n"
 #endif
@@ -1569,7 +1567,7 @@ static unsigned fb_get_flash_block_size(std::string name) {
 static void fb_perform_format(
                               const std::string& partition, int skip_if_not_supported,
                               const std::string& type_override, const std::string& size_override,
-                              const std::string& initial_dir, const unsigned fs_options) {
+                              const std::string& initial_dir) {
     std::string partition_type, partition_size;
 
     struct fastboot_buffer buf;
@@ -1632,7 +1630,7 @@ static void fb_perform_format(
     logicalBlkSize = fb_get_flash_block_size("logical-block-size");
 
     if (fs_generator_generate(gen, output.path, size, initial_dir,
-            eraseBlkSize, logicalBlkSize, fs_options)) {
+            eraseBlkSize, logicalBlkSize)) {
         die("Cannot generate image for %s", partition.c_str());
     }
 
@@ -1766,7 +1764,6 @@ int FastBootTool::Main(int argc, char* argv[]) {
     bool skip_secondary = false;
     bool set_fbe_marker = false;
     bool force_flash = false;
-    unsigned fs_options = 0;
     int longindex;
     std::string slot_override;
     std::string next_active;
@@ -1784,7 +1781,6 @@ int FastBootTool::Main(int argc, char* argv[]) {
         {"disable-verification", no_argument, 0, 0},
         {"disable-verity", no_argument, 0, 0},
         {"force", no_argument, 0, 0},
-        {"fs-options", required_argument, 0, 0},
         {"header-version", required_argument, 0, 0},
         {"help", no_argument, 0, 'h'},
         {"kernel-offset", required_argument, 0, 0},
@@ -1824,8 +1820,6 @@ int FastBootTool::Main(int argc, char* argv[]) {
                 g_disable_verity = true;
             } else if (name == "force") {
                 force_flash = true;
-            } else if (name == "fs-options") {
-                fs_options = ParseFsOption(optarg);
             } else if (name == "header-version") {
                 g_boot_img_hdr.header_version = strtoul(optarg, nullptr, 0);
             } else if (name == "dtb") {
@@ -1982,7 +1976,7 @@ int FastBootTool::Main(int argc, char* argv[]) {
             std::string partition = next_arg(&args);
 
             auto format = [&](const std::string& partition) {
-                fb_perform_format(partition, 0, type_override, size_override, "", fs_options);
+                fb_perform_format(partition, 0, type_override, size_override, "");
             };
             do_for_partitions(partition, slot_override, format, true);
         } else if (command == "signature") {
@@ -2172,10 +2166,10 @@ int FastBootTool::Main(int argc, char* argv[]) {
             if (partition == "userdata" && set_fbe_marker) {
                 fprintf(stderr, "setting FBE marker on initial userdata...\n");
                 std::string initial_userdata_dir = create_fbemarker_tmpdir();
-                fb_perform_format(partition, 1, partition_type, "", initial_userdata_dir, fs_options);
+                fb_perform_format(partition, 1, partition_type, "", initial_userdata_dir);
                 delete_fbemarker_tmpdir(initial_userdata_dir);
             } else {
-                fb_perform_format(partition, 1, partition_type, "", "", fs_options);
+                fb_perform_format(partition, 1, partition_type, "", "");
             }
         }
     }
@@ -2224,24 +2218,4 @@ void FastBootTool::ParseOsVersion(boot_img_hdr_v1* hdr, const char* arg) {
         syntax_error("bad OS version: %s", arg);
     }
     hdr->SetOsVersion(major, minor, patch);
-}
-
-unsigned FastBootTool::ParseFsOption(const char* arg) {
-    unsigned fsOptions = 0;
-
-    std::vector<std::string> options = android::base::Split(arg, ",");
-    if (options.size() < 1)
-        syntax_error("bad options: %s", arg);
-
-    for (size_t i = 0; i < options.size(); ++i) {
-        if (options[i] == "casefold")
-            fsOptions |= (1 << FS_OPT_CASEFOLD);
-        else if (options[i] == "projid")
-            fsOptions |= (1 << FS_OPT_PROJID);
-        else if (options[i] == "compress")
-            fsOptions |= (1 << FS_OPT_COMPRESS);
-        else
-            syntax_error("unsupported options: %s", options[i].c_str());
-    }
-    return fsOptions;
 }
