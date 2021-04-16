@@ -31,6 +31,16 @@
       "File": "memory.swappiness"
     },
     {
+      "Name": "STuneBoost",
+      "Controller": "schedtune",
+      "File": "schedtune.boost"
+    },
+    {
+      "Name": "STunePreferIdle",
+      "Controller": "schedtune",
+      "File": "schedtune.prefer_idle"
+    },
+    {
       "Name": "UClampMin",
       "Controller": "cpu",
       "File": "cpu.uclamp.min"
@@ -39,11 +49,6 @@
       "Name": "UClampMax",
       "Controller": "cpu",
       "File": "cpu.uclamp.max"
-    },
-    {
-      "Name": "UClampLatencySensitive",
-      "Controller": "cpu",
-      "File": "cpu.uclamp.latency_sensitive"
     },
     {
       "Name": "FreezerState",
@@ -60,7 +65,7 @@
           "Name": "JoinCgroup",
           "Params":
           {
-            "Controller": "cpu",
+            "Controller": "schedtune",
             "Path": "background"
           }
         }
@@ -99,21 +104,8 @@
           "Name": "JoinCgroup",
           "Params":
           {
-            "Controller": "cpu",
-            "Path": "system"
-          }
-        }
-      ]
-    },
-    {
-      "Name": "ServicePerformance",
-      "Actions": [
-        {
-          "Name": "JoinCgroup",
-          "Params":
-          {
-            "Controller": "cpu",
-            "Path": "system-background"
+            "Controller": "schedtune",
+            "Path": ""
           }
         }
       ]
@@ -125,7 +117,7 @@
           "Name": "JoinCgroup",
           "Params":
           {
-            "Controller": "cpu",
+            "Controller": "schedtune",
             "Path": "foreground"
           }
         }
@@ -138,7 +130,7 @@
           "Name": "JoinCgroup",
           "Params":
           {
-            "Controller": "cpu",
+            "Controller": "schedtune",
             "Path": "top-app"
           }
         }
@@ -151,7 +143,7 @@
           "Name": "JoinCgroup",
           "Params":
           {
-            "Controller": "cpu",
+            "Controller": "schedtune",
             "Path": "rt"
           }
         }
@@ -164,21 +156,8 @@
           "Name": "JoinCgroup",
           "Params":
           {
-            "Controller": "cpu",
+            "Controller": "schedtune",
             "Path": "camera-daemon"
-          }
-        }
-      ]
-    },
-    {
-      "Name": "NNApiHALPerformance",
-      "Actions": [
-        {
-          "Name": "JoinCgroup",
-          "Params":
-          {
-            "Controller": "cpu",
-            "Path": "nnapi-hal"
           }
         }
       ]
@@ -191,7 +170,7 @@
           "Name": "SetAttribute",
           "Params":
           {
-            "Name": "UClampLatencySensitive",
+            "Name": "STunePreferIdle",
             "Value": "1"
           }
         }
@@ -204,7 +183,7 @@
           "Name": "SetAttribute",
           "Params":
           {
-            "Name": "UClampLatencySensitive",
+            "Name": "STunePreferIdle",
             "Value": "0"
           }
         }
@@ -602,10 +581,6 @@
     {
       "Name": "SCHED_SP_TOP_APP",
       "Profiles": [ "MaxPerformance", "MaxIoPriority", "TimerSlackNormal" ]
-    },
-    {
-      "Name": "SCHED_SP_SYSTEM",
-      "Profiles": [ "ServicePerformance", "LowIoPriority", "TimerSlackNormal" ]
     },
     {
       "Name": "SCHED_SP_RT_APP",
