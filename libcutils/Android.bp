@@ -151,7 +151,6 @@ cc_library {
         "canned_fs_config.cpp",
         "iosched_policy.cpp",
         "load_file.cpp",
-        "memory.cpp",
         "native_handle.cpp",
         "record_stream.cpp",
         "strlcpy.c",
@@ -193,9 +192,6 @@ cc_library {
                 "trace-dev.cpp",
                 "uevent.cpp",
             ],
-        },
-        bionic: {
-            header_libs: ["bionic_libc_platform_headers"],
         },
 
         android_arm: {
