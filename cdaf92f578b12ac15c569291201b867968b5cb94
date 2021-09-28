@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1ddbbbce_26a66d2a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2021-09-28T03:31:19Z",
+      "side": 1,
+      "message": "It is required to successfully flash modern .zip\u0027s (tested in default recovery).",
+      "revId": "cdaf92f578b12ac15c569291201b867968b5cb94",
+      "serverId": "42502b1d-019c-4a7f-8d4c-3cb7dd1b67f8"
+    }
+  ]
+}
