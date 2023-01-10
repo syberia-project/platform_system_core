@@ -513,7 +513,7 @@ void Service::RunService(const std::optional<MountNamespace>& override_mount_nam
     }
 
     if (task_profiles_.size() > 0) {
-        bool succeeded = SelinuxGetVendorAndroidVersion() < __ANDROID_API_U__
+        bool succeeded = SelinuxGetVendorAndroidVersion() <= __ANDROID_API_T__
                                  ?
                                  // Compatibility mode: apply the task profiles to the current
                                  // thread.
